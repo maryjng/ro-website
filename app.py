@@ -6,7 +6,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.exc import IntegrityError
 from flask import Flask, render_template, flash, redirect, session, g, url_for
 # from flask_debugtoolbar import DebugToolbarExtension
-# from key import API_KEY, SECRET_KEY, USERNAME, PASSWORD
+from key import API_KEY, SECRET_KEY, USERNAME, PASSWORD
 
 from forms import UserAddForm, LoginForm
 from models import db, connect_db, User
@@ -15,18 +15,7 @@ CURR_USER_KEY = "curr_user"
 
 app = Flask(__name__)
 
-dbname = "market"
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', f"postgresql://postgres:kitty@localhost:5432/market")
-# openragnarok.com:3306
-
-#table cart_inventory
-    #id, char_id
-
-#table char
-    #char_id, account_id
-    #hair, hair_color, clothes_color, body
-    #weapon, shield, head_top, head_mid, head_bottom, robe, 
-#table 
+engine = sqlalchemy.create_engine(f"mariadb+mariadbconnector://{USER}:{PASSWORD}@{HOST}}/{DBNAME}")
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
