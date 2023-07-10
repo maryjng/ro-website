@@ -15,7 +15,7 @@ CURR_USER_KEY = "curr_user"
 
 app = Flask(__name__)
 
-engine = sqlalchemy.create_engine(f"mariadb+mariadbconnector://{USER}:{PASSWORD}@{HOST}}/{DBNAME}")
+engine = sqlalchemy.create_engine(f"mariadb+mariadbconnector://{USERNAME}:{PASSWORD}@{HOST}}/{DBNAME}")
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
