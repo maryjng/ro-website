@@ -1,29 +1,23 @@
 import os
-# import requests
 
 from sqlalchemy import join, exc, and_
 from sqlalchemy.sql import func
 from sqlalchemy.exc import IntegrityError
 from flask import Flask, render_template, flash, redirect, session, g, url_for
 # from flask_debugtoolbar import DebugToolbarExtension
-from key import API_KEY, SECRET_KEY, USERNAME, PASSWORD
-
+# from key import SECRET_KEY, USERNAME, PASSWORD, DBNAME
 from forms import UserAddForm, LoginForm
-from models import db, connect_db, User
+from models import db, User, connect_db
 
 CURR_USER_KEY = "curr_user"
 
 app = Flask(__name__)
 
-engine = sqlalchemy.create_engine(f"mariadb+mariadbconnector://{USERNAME}:{PASSWORD}@{HOST}}/{DBNAME}")
-
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root@localhost:3306/testdb'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
-app.config['SECRET_KEY'] = "SECRET_KEY"
-
-app.debug = True
-# toolbar = DebugToolbarExtension(app)
+app.config['SECRET_KEY'] = 'kitty'
 
 connect_db(app)
 
@@ -58,7 +52,7 @@ def login():
                                     form.password.data)
 
             if user:
-                session[CURR_USER_KEY] = user.id
+                session[CURR_USER_KEY] = user.userid
 
                 return redirect(url_for("index"))
         
@@ -88,10 +82,11 @@ def register():
             db.session.commit()
 
             flash("Registration successful.")
-            session[CURR_USER_KEY] = user.id
+            session[CURR_USER_KEY] = user.userid
 
             return redirect(url_for("index"))
 
+#@@@@@@@@@@@@@@@@@@@@INTEGRITY ERROR IS NOT BEING THROWN USERS WITH DUPLICATE USERNAME AND EMAIL CAN BE MADE FIX THIS
         except IntegrityError as e:
             flash("Username already taken.", 'danger')
             return render_template("register.html", form=form)
@@ -110,6 +105,15 @@ def logout():
         return redirect(url_for("index"))
 
 #################################################################################
+
+@app.route("/account")
+def show_account():
+    if g.user:
+        #query user's chars and their equipment and cloth color from db
+
+        return render_template("account.html", characters=characters)
+
+    return redirect(url_for("index"))
 
 ###############################################################################
 
