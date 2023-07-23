@@ -6,38 +6,65 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
 class User(db.Model):
-    __tablename__ = "users"
+    __tablename__ = "login"
 
-    userid = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    email = db.Column(db.Text, nullable=False, unique=True)
-    username = db.Column(db.Text, nullable=False, unique=True)
-    password = db.Column(db.Text, nullable=False)
+    account_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    email = db.Column(db.VARCHAR(39), nullable=False, unique=True)
+    userid = db.Column(db.VARCHAR(23), nullable=False, unique=True)
+    user_pass = db.Column(db.VARCHAR(32), nullable=False)
+
+    sex = db.Column(db.Text, nullable=False, default='M')
+    group_id = db.Column(db.Integer, nullable=False, default=0)
+    state = db.Column(db.Integer, nullable=False, default=0)
+    unban_time = db.Column(db.Integer, nullable=False, default=0)
+    expiration_time = db.Column(db.Integer, nullable=False, default=0)
+    logincount = db.Column(db.Integer, nullable=False, default=0)
+    lastlogin = db.Column(db.DateTime)
+    last_ip = db.Column(db.VARCHAR(100), nullable=False, default='')
+    birthdate = db.Column(db.DateTime)
+    character_slots = db.Column(db.Integer, nullable=False, default=0)
+    pincode = db.Column(db.VARCHAR(4), nullable=False, default='')
+    pincode_change = db.Column(db.Integer, nullable=False, default=0)
+    vip_time = db.Column(db.Integer, nullable=False, default=0)
+    old_group = db.Column(db.Integer, nullable=False, default=0)
+    web_auth_token = db.Column(db.VARCHAR(17))
+    web_auth_token_enabled = db.Column(db.Integer, nullable=False, default=0)
+
 
     @classmethod
-    def signup(cls, username, email, password):
+    def signup(cls, userid, email, user_pass):
         """Sign up user. Hashes password and adds user to system."""
 
-        hashed_pwd = hashlib.md5(password.encode()).hexdigest()
-        user = User(username=username, email=email, password=hashed_pwd)
+        hashed_pwd = hashlib.md5(user_pass.encode()).hexdigest()
+        user = User(userid=userid, email=email, user_pass=hashed_pwd)
 
         db.session.add(user)
         return user
     
     @classmethod
-    def authenticate(cls, username, password):
+    def authenticate(cls, userid, password):
         """Find user with `username` and `password`. searches for a user whose password hash matches this password
         and, if it finds such a user, returns that user object.
         If can't find matching user (or if password is wrong), returns False.
         """
 
-        user = cls.query.filter_by(username=username).first()
+        user = cls.query.filter_by(userid=userid).first()
 
         if user:
             hashed_pw = hashlib.md5(password.encode()).hexdigest()
-            if hashed_pw == user.password:
+            if hashed_pw == user.user_pass:
                 return user
 
         return False
+    
+    @classmethod
+    def check_no_duplicates(cls, userid):
+        #returns True if username doesn't exist already
+        user = cls.query.filter_by(userid=userid).first()
+
+        if user:
+            return False
+        return True
     
 
 #table cart_inventory

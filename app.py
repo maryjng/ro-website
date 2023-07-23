@@ -1,6 +1,4 @@
-import os
-
-from sqlalchemy import join, exc, and_
+from sqlalchemy import join, exc, and_, select
 from sqlalchemy.sql import func
 from sqlalchemy.exc import IntegrityError
 from flask import Flask, render_template, flash, redirect, session, g, url_for
@@ -13,7 +11,7 @@ CURR_USER_KEY = "curr_user"
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root@localhost:3306/testdb'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root@localhost:3306/openro'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
@@ -28,7 +26,7 @@ def add_user_to_g():
     """If logged in, add curr user to Flask global."""
 
     if CURR_USER_KEY in session:
-        g.user = User.query.get(session[CURR_USER_KEY])
+        g.user = db.session.query(User).filter_by(userid=session[CURR_USER_KEY])
 
     else:
         g.user = None
@@ -55,6 +53,8 @@ def login():
                 session[CURR_USER_KEY] = user.userid
 
                 return redirect(url_for("index"))
+            else:
+                raise Exception("Authentication failed.")
         
         except:
             flash('Incorrect credentials.')
@@ -69,24 +69,28 @@ def register():
 
     if form.validate_on_submit():
         try:
+        #Check for matching passwords and if username is taking. Throw errors where needed and handle
             pw_confirm = form.confirm_password.data
             password = form.password.data
             if pw_confirm != password:
                 raise ValueError('Passwords do not match.')
 
-            user = User.signup(
-            username = form.username.data,
-            email = form.email.data,
-            password = form.password.data)
+            if User.check_no_duplicates(userid=form.username.data):
+                user = User.signup(
+                userid = form.username.data,
+                email = form.email.data,
+                user_pass = form.password.data)
 
-            db.session.commit()
+                db.session.commit()
 
-            flash("Registration successful.")
-            session[CURR_USER_KEY] = user.userid
+                flash("Registration successful.")
+                session[CURR_USER_KEY] = user.account_id
 
-            return redirect(url_for("index"))
+                return redirect(url_for("index"))
+            
+            else:
+                raise IntegrityError("Username already in use.", params={}, orig=None)
 
-#@@@@@@@@@@@@@@@@@@@@INTEGRITY ERROR IS NOT BEING THROWN USERS WITH DUPLICATE USERNAME AND EMAIL CAN BE MADE FIX THIS
         except IntegrityError as e:
             flash("Username already taken.", 'danger')
             return render_template("register.html", form=form)
@@ -106,14 +110,14 @@ def logout():
 
 #################################################################################
 
-@app.route("/account")
-def show_account():
-    if g.user:
-        #query user's chars and their equipment and cloth color from db
+# @app.route("/account")
+# def show_account():
+#     if g.user:
+#         #query user's chars and their equipment and cloth color from db
 
-        return render_template("account.html", characters=characters)
+#         return render_template("account.html", characters=characters)
 
-    return redirect(url_for("index"))
+#     return redirect(url_for("index"))
 
 ###############################################################################
 
