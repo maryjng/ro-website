@@ -1,25 +1,35 @@
+import base64
+import random
+import string
 from sqlalchemy import join, exc, and_, select
 from sqlalchemy.sql import func
 from sqlalchemy.exc import IntegrityError
-from flask import Flask, render_template, flash, redirect, session, g, url_for
+from flask import Flask, render_template, flash, redirect, session, g, url_for, request
 # from flask_debugtoolbar import DebugToolbarExtension
-# from key import SECRET_KEY, USERNAME, PASSWORD, DBNAME
 from forms import UserAddForm, LoginForm
 from models import db, User, connect_db
+from captcha.image import ImageCaptcha
+import config
+
 
 CURR_USER_KEY = "curr_user"
 
+image = ImageCaptcha()
 app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root@localhost:3306/openro'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
-app.config['SECRET_KEY'] = 'kitty'
+app.config['SECRET_KEY'] = config.SECRET_KEY
 
 connect_db(app)
 
 #########################################################################
+def generate_captcha_code():
+    characters = string.ascii_letters + string.digits
+    return ''.join(random.choice(characters) for _ in range(6))
+
 
 @app.before_request
 def add_user_to_g():
@@ -36,7 +46,7 @@ def add_user_to_g():
 @app.route("/home", methods=["GET"])
 def index():
     # if g.user:
-    #     return redirect(url_for("trackings"))
+    #     return redirect(url_for("show_account"))
     return render_template("home.html")
 
 
@@ -69,7 +79,13 @@ def register():
 
     if form.validate_on_submit():
         try:
-        #Check for matching passwords and if username is taking. Throw errors where needed and handle
+            captcha_input = request.form.get('captcha_input')
+            expected_captcha = session.get("captcha_code")
+
+            if captcha_input != expected_captcha:
+                raise ValueError("Captcha input does not match.")
+
+            #Check for matching passwords and if username is taking. Throw errors where needed and handle
             pw_confirm = form.confirm_password.data
             password = form.password.data
             if pw_confirm != password:
@@ -89,17 +105,23 @@ def register():
                 return redirect(url_for("index"))
             
             else:
-                raise IntegrityError("Username already in use.", params={}, orig=None)
+                raise IntegrityError("Username already in use.")
 
         except IntegrityError as e:
+            print(e)
             flash("Username already taken.", 'danger')
-            return render_template("register.html", form=form)
-        except ValueError as e:
-            flash("Passwords must match.", 'danger')
-            return render_template("register.html", form=form)
 
-    else:
-        return render_template("register.html", form=form)
+        except ValueError as e:
+            print(e)
+            flash(e, 'danger')
+    
+    #generate captcha code, assign to session, and create the image
+    captcha_code = generate_captcha_code()
+    session["captcha_code"] = captcha_code
+    captcha_image = image.generate(captcha_code)
+    captcha_image = base64.b64encode(captcha_image.read()).decode()
+
+    return render_template("register.html", form=form, captcha_image=captcha_image,mimetype="image/png")
 
 
 @app.route("/logout")

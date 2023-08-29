@@ -12,7 +12,11 @@
         {% endfor %}
         {{ field(placeholder=field.label.text, class="form-control") }}
       {% endfor %}
-      <button class>Register</button>
+
+      <img src="data:image/png;base64,{{ captcha_image|safe }}" alt="CAPTCHA Image">
+      <input type="text" name="captcha_input" placeholder="Enter CAPTCHA">
+
+      <button>Register</button>
     </form>
   </div>
 </div>
